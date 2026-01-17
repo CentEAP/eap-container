@@ -2,20 +2,23 @@
 # vi: set ft=ruby :
 
 Vagrant.configure("2") do |config|
-  config.vm.box = "freebsd/FreeBSD-12.2-STABLE"
+  config.vm.box = "freebsd/FreeBSD-14.1-STABLE"
 
+  config.vm.disk :disk, size: "12GB", primary: true
   config.vm.provider :virtualbox do |v|
     v.customize ["modifyvm", :id, "--memory", 2048]
   end
 
-  config.vm.synced_folder "..", "/home/vagrant/eap-build", type: "rsync", rsync__exclude: [".git", "dist", "download", "work"]
+  config.vm.synced_folder "..", "/vagrant", disabled: true
 
   config.vm.provision "shell", inline: <<-SHELL
     pkg update
-    pkg install -y wget unzip patch curl maven xmlstarlet openjdk11
+    pkg install -y wget unzip patch curl maven xmlstarlet openjdk17 git
     echo "alias xmlstarlet='xml'" >> /home/vagrant/.bashrc
     echo "alias tac='tail -r'" >> /home/vagrant/.bashrc
     ln -s /usr/local/bin/bash /bin/bash
-    # bash -i build-eap7.sh
+    git clone https://github.com/CentEAP/eap-build.git
+    chown -R vagrant:vagrant eap-build
+    # bash -i build-eap.sh
   SHELL
 end
