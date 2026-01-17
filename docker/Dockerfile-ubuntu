@@ -1,5 +1,5 @@
 ARG JDK_VERSION=17
-ARG JDK_IMAGE=eclipse-temurin:${JDK_VERSION}-jdk-alpine
+ARG JDK_IMAGE=eclipse-temurin:${JDK_VERSION}-jdk
 
 
 # =====
@@ -8,23 +8,22 @@ FROM $JDK_IMAGE AS eap-build
 ARG EAP_VERSION
 ARG MVN_OUTPUT
 
-# Intalling binutils solves some handshake issues on JDK 8
-RUN apk update  && \
-    apk add bash wget unzip patch curl maven xmlstarlet binutils  && \
+RUN apt update -y && \
+    apt install -y wget unzip patch curl maven xmlstarlet && \
     mkdir /eap-build
 
 WORKDIR /eap-build
 COPY . ./
-RUN ./build-eap.sh $EAP_VERSION  && \ 
-    unzip -q -d /opt dist/jboss-eap-*.zip  && \
+RUN ./build-eap.sh $EAP_VERSION && \ 
+    unzip -q -d /opt dist/jboss-eap-*.zip && \ 
     mv /opt/jboss-eap-* /opt/jboss-eap
 
 
 # =====
 FROM $JDK_IMAGE
 
-RUN addgroup --gid 1000 jboss  && \
-    adduser -u 1000 -G jboss -h /opt/jboss-eap -D -s /sbin/nologin jboss  && \
+RUN groupadd -r jboss -g 1001 && \
+    useradd -u 1001 -r -g jboss -m -d /opt/jboss-eap -s /sbin/nologin -c "JBoss user" jboss && \
     chmod 755 /opt/jboss-eap
 
 COPY --from=eap-build --chown=jboss:0 /opt/jboss-eap /opt/jboss-eap
